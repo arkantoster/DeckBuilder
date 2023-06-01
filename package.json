@@ -1,0 +1,7 @@
+{
+  "name": "DeckBuilder",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Junior <arkantoster@gmail.com>",
+  "license": "MIT"
+}
