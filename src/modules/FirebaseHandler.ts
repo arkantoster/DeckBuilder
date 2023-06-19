@@ -9,6 +9,6 @@ initializeApp({
   credential: cert(JSON.parse(firebaseConf))
 });
 
-const db = getFirestore();
+const fireStore = getFirestore();
 
-export default db
+export default fireStore

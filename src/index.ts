@@ -4,7 +4,8 @@ import { input } from "@inquirer/prompts";
 import DeckScrapper from "./modules/DeckScrapper";
 import AlgorithmRunner from "./modules/AlgorithmRunner";
 import log from "./modules/logFileStream";
-import db from "./modules/FirebaseHandler";
+import fireStore from "./modules/FirebaseHandler";
+import SQLite from './modules/SqliteManager';
 
 import collectionId from "./constants/collections";
 
@@ -41,9 +42,18 @@ const main = async () => {
 
   spin = log('Consultando formatos')
   let formats = []
+  let descriptions: {
+    format: string,
+    minSup: number,
+    decks: number,
+    combinations: number,
+  }[] = []
   try {
-    const formatsSnap = await db.collection(collectionId.formats).get()
-    formats = formatsSnap.docs.map(val => val.get('name'))
+    const formatsSnap = await fireStore.collection(collectionId.formats).get()
+    formats = formatsSnap.docs.map(val => val.get('name'));
+
+    descriptions = await (await SQLite).all('SELECT * FROM apriori_data');
+
     spin.succeed('Formatos lidos')
   } catch (error) {
     spin.fail('Não foi possível obter os formatos disponíveis.');
@@ -58,6 +68,10 @@ const main = async () => {
         {
           name: val,
           value: val,
+          description: descriptions.reduce((acc, cur) => {
+            if (cur.format === val) acc = `${cur.decks} decks | ${cur.minSup * 100}% suporte | ${cur.combinations} combinações`
+            return acc
+          }, '')
         }))
     });
   } else {

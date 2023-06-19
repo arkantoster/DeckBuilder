@@ -1,5 +1,5 @@
 import Xray from 'x-ray'
-import db from './FirebaseHandler';
+import fireStore from './FirebaseHandler';
 import collectionId from '../constants/collections';
 
 export default class DeckScrapper {
@@ -11,7 +11,7 @@ export default class DeckScrapper {
       }
     }).delay('1s', '5s');
 
-    this.decksCollection = db.collection(collectionId.decks)
+    this.decksCollection = fireStore.collection(collectionId.decks)
   }
 
   async scrapDecksFromEvents() {
@@ -81,7 +81,7 @@ export default class DeckScrapper {
   public async getFormatsFromDecks() {
     try {
       // logger.log('getting decks', 'info')
-      const decksSnapshot = await db.collection(collectionId.decks).get();
+      const decksSnapshot = await fireStore.collection(collectionId.decks).get();
       const counter: any = {}
       for (const deckSnap of decksSnapshot.docs) {
 
@@ -94,11 +94,11 @@ export default class DeckScrapper {
           counter[deck.format] = 1
         }
         // logger.log('procurando formato', 'info')
-        const snapshot = await db.collection(collectionId.formats).where('name', '==', deck.format).get();
+        const snapshot = await fireStore.collection(collectionId.formats).where('name', '==', deck.format).get();
 
         if (snapshot.empty) {
           // logger.log('formato n encontrado', 'info')
-          await db.collection(collectionId.formats).doc().set({ name: deck.format })
+          await fireStore.collection(collectionId.formats).doc().set({ name: deck.format })
         } else {
           // logger.log('formato encontrado', 'warning')
         }

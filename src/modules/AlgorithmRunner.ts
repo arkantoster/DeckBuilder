@@ -1,22 +1,19 @@
-import sqlite3 from "sqlite3";
-import collectionId from '../constants/collections';
-import db from './FirebaseHandler';
-import { open } from 'sqlite';
-import log from './logFileStream';
 import { Apriori } from 'node-apriori';
+
+import fireStore from './FirebaseHandler';
+import log from './logFileStream';
+import SQLite from "./SqliteManager";
+
+import collectionId from '../constants/collections';
 
 
 class AlgorithmRunner {
   constructor() {
-    this.decksCollection = db.collection(collectionId.decks)
-    this.SQLManagerLocal = open({
-      filename: 'dataBase/sqlDatabase.db',
-      driver: sqlite3.Database
-    })
+    this.decksCollection = fireStore.collection(collectionId.decks)
   }
 
   public async runApriori(format: string, minSup: number) {
-    const SQLiteLocal = await this.SQLManagerLocal;
+    const SQLiteLocal = await SQLite;
 
     let spin = log(`Procurando decks com o formato: ${format}`)
     let snapshot;
@@ -119,8 +116,6 @@ class AlgorithmRunner {
       return;
     }
   }
-
-  private SQLManagerLocal
   private decksCollection;
 }
 
