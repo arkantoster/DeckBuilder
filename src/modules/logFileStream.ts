@@ -6,7 +6,7 @@ const stream = createWriteStream(`logs/${moment().format()}.log`)
 
 const log = (text: string, options?: ora.Options) => {
   stream.write(`${moment()}: ${text}\n`)
-  return ora({ text, indent: 4, ...options }).start()
+  return ora({ text, ...options }).start()
 }
 
 export default log

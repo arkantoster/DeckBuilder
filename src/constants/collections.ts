@@ -1,6 +1,7 @@
 const collectionId = {
   cards: 'cards',
-  decks: 'decks'
+  decks: 'decks',
+  formats: 'deckFormats'
 }
 
 export default collectionId

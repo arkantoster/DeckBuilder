@@ -1,35 +1,35 @@
+import select from '@inquirer/select';
+import { input } from "@inquirer/prompts";
+
 import DeckScrapper from "./modules/DeckScrapper";
 import AlgorithmRunner from "./modules/AlgorithmRunner";
 import log from "./modules/logFileStream";
+import db from "./modules/FirebaseHandler";
+
+import collectionId from "./constants/collections";
 
 String.prototype.toSql = function () {
   return this.replace(' ', '_').replace(/[^\w\d]/g, '').toLowerCase()
 }
 
-const readline = require('readline').createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
 const main = async () => {
 
-  console.log(`\n\n       /$$      /$$ /$$$$$$$$ /$$$$$$        /$$$$$$$                      /$$             /$$$$$$$            /$$ /$$       /$$                    `)
-  console.log(`      | $$$    /$$$|__  $$__//$$__  $$      | $$__  $$                    | $$            | $$__  $$          |__/| $$      | $$                    `)
-  console.log(`      | $$$$  /$$$$   | $$  | $$  \\__/      | $$  \\ $$  /$$$$$$   /$$$$$$$| $$   /$$      | $$  \\ $$ /$$   /$$ /$$| $$  /$$$$$$$  /$$$$$$   /$$$$$$ `)
-  console.log(`      | $$ $$/$$ $$   | $$  | $$ /$$$$      | $$  | $$ /$$__  $$ /$$_____/| $$  /$$/      | $$$$$$$ | $$  | $$| $$| $$ /$$__  $$ /$$__  $$ /$$__  $$`)
-  console.log(`      | $$  $$$| $$   | $$  | $$|_  $$      | $$  | $$| $$$$$$$$| $$      | $$$$$$/       | $$__  $$| $$  | $$| $$| $$| $$  | $$| $$$$$$$$| $$  \\__/`)
-  console.log(`      | $$\\  $ | $$   | $$  | $$  \\ $$      | $$  | $$| $$_____/| $$      | $$_  $$       | $$  \\ $$| $$  | $$| $$| $$| $$  | $$| $$_____/| $$      `)
-  console.log(`      | $$ \\/  | $$   | $$  |  $$$$$$/      | $$$$$$$/|  $$$$$$$|  $$$$$$$| $$ \\  $$      | $$$$$$$/|  $$$$$$/| $$| $$|  $$$$$$$|  $$$$$$$| $$      `)
-  console.log(`      |__/     |__/   |__/   \\______/       |_______/  \\_______/ \\_______/|__/  \\__/      |_______/  \\______/ |__/|__/ \\_______/ \\_______/|__/      \n\n`)
+  console.log(` `)
+  console.log(`███╗░░░███╗████████╗░██████╗░  ██████╗░███████╗░█████╗░██╗░░██╗`)
+  console.log(`████╗░████║╚══██╔══╝██╔════╝░  ██╔══██╗██╔════╝██╔══██╗██║░██╔╝`)
+  console.log(`██╔████╔██║░░░██║░░░██║░░██╗░  ██║░░██║█████╗░░██║░░╚═╝█████═╝░`)
+  console.log(`██║╚██╔╝██║░░░██║░░░██║░░╚██╗  ██║░░██║██╔══╝░░██║░░██╗██╔═██╗░`)
+  console.log(`██║░╚═╝░██║░░░██║░░░╚██████╔╝  ██████╔╝███████╗╚█████╔╝██║░╚██╗`)
+  console.log(`╚═╝░░░░░╚═╝░░░╚═╝░░░░╚═════╝░  ╚═════╝░╚══════╝░╚════╝░╚═╝░░╚═╝\n`)
+  console.log(`       ██████╗░██╗░░░██╗██╗██╗░░░░░██████╗░███████╗██████╗░      `)
+  console.log(`       ██╔══██╗██║░░░██║██║██║░░░░░██╔══██╗██╔════╝██╔══██╗      `)
+  console.log(`       ██████╦╝██║░░░██║██║██║░░░░░██║░░██║█████╗░░██████╔╝      `)
+  console.log(`       ██╔══██╗██║░░░██║██║██║░░░░░██║░░██║██╔══╝░░██╔══██╗      `)
+  console.log(`       ██████╦╝╚██████╔╝██║███████╗██████╔╝███████╗██║░░██║      `)
+  console.log(`       ╚═════╝░░╚═════╝░╚═╝╚══════╝╚═════╝░╚══════╝╚═╝░░╚═╝      \n\n`)
+
 
   log('Deck Builder inicializado').info()
-
-
-
-  readline.question(`What's your name?`, (name: string) => {
-    console.log(`Hi ${name}!`);
-    readline.close();
-  });
 
   let spin = log('Validando se há novos decks')
   const deckScrap = new DeckScrapper();
@@ -37,18 +37,62 @@ const main = async () => {
     spin.succeed('Há novos decks')
     await deckScrap.scrapDecksFromEvents();
     await deckScrap.getFormatsFromDecks()
-  } else spin.fail('Não há novos decks')
+  } else spin.info('Não há novos decks')
+
+  spin = log('Consultando formatos')
+  let formats = []
+  try {
+    const formatsSnap = await db.collection(collectionId.formats).get()
+    formats = formatsSnap.docs.map(val => val.get('name'))
+    spin.succeed('Formatos lidos')
+  } catch (error) {
+    spin.fail('Não foi possível obter os formatos disponíveis.');
+  }
+
+  let choosenFormat = ''
+
+  if (formats.length) {
+    choosenFormat = await select({
+      message: 'Selecione um formato:',
+      choices: formats.map(val => (
+        {
+          name: val,
+          value: val,
+        }))
+    });
+  } else {
+    choosenFormat = await input({ message: 'Digite um formato:' });
+  }
+
+  const minSup = await select({
+    message: 'Qual o suporte mínimo:',
+    choices: [
+      {
+        name: `17.5%`,
+        value: 0.175
+      }, {
+        name: `20%`,
+        value: 0.20
+      }, {
+        name: `22.5%`,
+        value: 0.225
+      }, {
+        name: `25%`,
+        value: 0.25
+      }, {
+        name: `27.5%`,
+        value: 0.275
+      }, {
+        name: `30%`,
+        value: 0.30
+      }
+    ]
+  });
 
   log('Inicializando cálculos').info()
 
   const alg = new AlgorithmRunner()
-  await alg.runApriori('Pioneer', 0.25)
-
-
-  // alg.runApriori('Pioneer', 0.175)
-  // ℹ Tempo de execução: 38811
-  // ℹ combinações frequentes: 69910
-
+  await alg.runApriori(choosenFormat, minSup)
 
   log(`Deck Builder finalizado`).info()
 

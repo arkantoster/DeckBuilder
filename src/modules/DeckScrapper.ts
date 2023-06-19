@@ -1,6 +1,6 @@
 import Xray from 'x-ray'
-import Deck, { cardInfo } from '../classes/Deck';
 import db from './FirebaseHandler';
+import collectionId from '../constants/collections';
 
 export default class DeckScrapper {
   constructor() {
@@ -11,7 +11,7 @@ export default class DeckScrapper {
       }
     }).delay('1s', '5s');
 
-    this.decksCollection = db.collection('decks')
+    this.decksCollection = db.collection(collectionId.decks)
   }
 
   async scrapDecksFromEvents() {
@@ -47,16 +47,23 @@ export default class DeckScrapper {
               card: this.x('td.deck-card > a@href', 'p.nome-auxiliar@text'),
             }])
 
-            const deckObj = new Deck(
-              deck.name,
-              event.format,
-              cardList.filter((card: cardInfo) => card.quantity),
-              deck.id,
-              `Deck Scrapped from ${deck.url}, used in ${event.name}`
-            )
+            const { name, id } = deck
+            const cards = cardList.filter((card: {
+              quantity: number,
+              card: string
+            }) => card.quantity)
+
+            const deckObj = {
+              name: name ?? 'N/A',
+              size: cards.length,
+              format: event.format,
+              extId: id,
+              cards,
+              desc: `Deck Scrapped from ${deck.url}, used in ${event.name}`
+            }
 
             // logger.log('salvando deck', 'info')
-            await this.decksCollection.doc().set(deckObj.toFirebase());
+            await this.decksCollection.doc().set(deckObj);
             // logger.log('deck incluído', 'info')
           } else {
             // logger.log('deck encontrado', 'warning')
@@ -74,7 +81,7 @@ export default class DeckScrapper {
   public async getFormatsFromDecks() {
     try {
       // logger.log('getting decks', 'info')
-      const decksSnapshot = await db.collection('decks').get();
+      const decksSnapshot = await db.collection(collectionId.decks).get();
       const counter: any = {}
       for (const deckSnap of decksSnapshot.docs) {
 
@@ -87,11 +94,11 @@ export default class DeckScrapper {
           counter[deck.format] = 1
         }
         // logger.log('procurando formato', 'info')
-        const snapshot = await db.collection('deckFormats').where('name', '==', deck.format).get();
+        const snapshot = await db.collection(collectionId.formats).where('name', '==', deck.format).get();
 
         if (snapshot.empty) {
           // logger.log('formato n encontrado', 'info')
-          await db.collection('deckFormats').doc().set({ name: deck.format })
+          await db.collection(collectionId.formats).doc().set({ name: deck.format })
         } else {
           // logger.log('formato encontrado', 'warning')
         }
